@@ -247,3 +247,38 @@ class AddUserTestCase(CharmTestCase):
 
         self.action_fail.assert_called_once_with(
             'Adding user test failed with: ""')
+
+
+class DiskUsageTestCase(CharmTestCase):
+
+    def setUp(self):
+        super(DiskUsageTestCase, self).setUp(
+            actions.actions, ["check_output", "action_set", "action_fail"])
+
+    def test_success(self):
+        """Ensure that the action_set is called on success."""
+        self.check_output.return_value = 'Swift recon ran OK'
+        actions.actions.diskusage([])
+        self.check_output.assert_called_once_with(['swift-recon', '-d'])
+
+        self.action_set.assert_called()
+        self.action_fail.not_called()
+
+    def test_check_output_failure(self):
+        """Ensure that action_fail and action_set are called on
+        check_output failure."""
+        self.check_output.side_effect = actions.actions.CalledProcessError(
+            1, "Failure")
+
+        actions.actions.diskusage([])
+        self.check_output.assert_called_once_with(['swift-recon', '-d'])
+
+        self.action_set.assert_called()
+        self.action_fail.assert_called()
+
+    def test_failure(self):
+        """Ensure that action_fail is called on any other failure."""
+        self.check_output.raiseError.side_effect = Exception("Failure")
+        actions.actions.diskusage([])
+        self.check_output.assert_called_once_with(['swift-recon', '-d'])
+        self.assertRaises("Failure")
